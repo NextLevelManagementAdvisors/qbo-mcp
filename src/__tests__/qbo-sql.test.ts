@@ -73,6 +73,20 @@ describe("assertPositiveInt", () => {
     expect(() => assertPositiveInt(1.5, "x")).toThrow();
     expect(() => assertPositiveInt("abc", "x")).toThrow();
   });
+
+  it("accepts values beyond 1000 when max is Infinity (startPosition offsets)", () => {
+    expect(assertPositiveInt(5000, "startPosition", { max: Infinity })).toBe(5000);
+    expect(assertPositiveInt(1_000_000, "startPosition", { max: Infinity })).toBe(
+      1_000_000
+    );
+  });
+
+  it("still rejects zero/negative/non-integer even with an Infinity max", () => {
+    expect(() => assertPositiveInt(0, "x", { max: Infinity })).toThrow();
+    expect(() => assertPositiveInt(-5, "x", { max: Infinity })).toThrow();
+    expect(() => assertPositiveInt(1.5, "x", { max: Infinity })).toThrow();
+    expect(() => assertPositiveInt(Infinity, "x", { max: Infinity })).toThrow();
+  });
 });
 
 describe("buildDatedListSql", () => {
@@ -90,6 +104,15 @@ describe("buildDatedListSql", () => {
     );
     expect(() => buildDatedListSql("Bill", { startDate: "nope" })).toThrow(
       /Invalid startDate/
+    );
+  });
+
+  it("accepts a startPosition beyond 1000 but still caps maxResults", () => {
+    expect(buildDatedListSql("Payment", { startPosition: 5000 })).toBe(
+      "SELECT * FROM Payment STARTPOSITION 5000 MAXRESULTS 100"
+    );
+    expect(() => buildDatedListSql("Payment", { maxResults: 1001 })).toThrow(
+      /Invalid maxResults/
     );
   });
 

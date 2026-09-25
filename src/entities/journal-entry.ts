@@ -6,7 +6,8 @@
  * and an AccountRef. Total debits must equal total credits across all lines.
  */
 
-import type { EntityConfig, EntityField } from "./types.js";
+import { mergeExtras, operationExtras } from "./operations.js";
+import type { EntityConfig, EntityExtras, EntityField } from "./types.js";
 
 const journalEntryFields: EntityField[] = [
   {
@@ -43,9 +44,20 @@ export const journalEntryConfig: EntityConfig = {
   name: "JournalEntry",
   toolPrefix: "qbo_journal_entries",
   description:
-    "Journal entries - list, get, create, update double-entry debit/credit transactions",
+    "Journal entries - list, get, create, update, delete double-entry debit/credit transactions",
   list: { dateRange: true },
   get: { idParam: "journalEntryId" },
   create: { fields: journalEntryFields },
   update: { idParam: "journalEntryId", fields: journalEntryFields },
 };
+
+export const journalEntryExtras: EntityExtras = mergeExtras(
+  {},
+  operationExtras({
+    prefix: "qbo_journal_entries",
+    path: "journalentry",
+    label: "journal entry",
+    idParam: "journalEntryId",
+    delete: true,
+  })
+);

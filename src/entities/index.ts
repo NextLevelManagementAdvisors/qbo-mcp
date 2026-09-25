@@ -14,11 +14,11 @@ import type { EntityConfig, EntityExtras } from "./types.js";
 
 import { customerConfig, customerExtras } from "./customer.js";
 import { invoiceConfig, invoiceExtras } from "./invoice.js";
-import { paymentConfig } from "./payment.js";
+import { paymentConfig, paymentExtras } from "./payment.js";
 import { vendorConfig } from "./vendor.js";
 import { itemConfig } from "./item.js";
 import { accountConfig } from "./account.js";
-import { journalEntryConfig } from "./journal-entry.js";
+import { journalEntryConfig, journalEntryExtras } from "./journal-entry.js";
 import { billConfig } from "./bill.js";
 import { billPaymentConfig } from "./bill-payment.js";
 import { vendorCreditConfig } from "./vendor-credit.js";
@@ -28,7 +28,7 @@ import { estimateConfig } from "./estimate.js";
 import { salesReceiptConfig } from "./sales-receipt.js";
 import { creditMemoConfig } from "./credit-memo.js";
 import { refundReceiptConfig } from "./refund-receipt.js";
-import { depositConfig } from "./deposit.js";
+import { depositConfig, depositExtras } from "./deposit.js";
 import { transferConfig } from "./transfer.js";
 import { timeActivityConfig } from "./time-activity.js";
 import { classConfig } from "./class.js";
@@ -60,11 +60,11 @@ function makeEntry(config: EntityConfig, extras?: EntityExtras): RegistryEntry {
 const registry: RegistryEntry[] = [
   makeEntry(customerConfig, customerExtras),
   makeEntry(invoiceConfig, invoiceExtras),
-  makeEntry(paymentConfig),
+  makeEntry(paymentConfig, paymentExtras),
   makeEntry(vendorConfig),
   makeEntry(itemConfig),
   makeEntry(accountConfig),
-  makeEntry(journalEntryConfig),
+  makeEntry(journalEntryConfig, journalEntryExtras),
   makeEntry(billConfig),
   makeEntry(billPaymentConfig),
   makeEntry(vendorCreditConfig),
@@ -74,7 +74,7 @@ const registry: RegistryEntry[] = [
   makeEntry(salesReceiptConfig),
   makeEntry(creditMemoConfig),
   makeEntry(refundReceiptConfig),
-  makeEntry(depositConfig),
+  makeEntry(depositConfig, depositExtras),
   makeEntry(transferConfig),
   makeEntry(timeActivityConfig),
   makeEntry(classConfig),

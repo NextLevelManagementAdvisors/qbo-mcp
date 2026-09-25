@@ -18,7 +18,6 @@ import { getClient } from "../utils/client.js";
 import {
   assertPositiveInt,
   buildDatedListSql,
-  escapeQboLike,
   escapeQboString,
   type DatedListArgs,
 } from "../utils/qbo-sql.js";
@@ -233,13 +232,19 @@ function builtinHandlers(config: EntityConfig): Map<string, Handler> {
     const { field } = config.search;
     map.set(`${prefix}_search`, async (args) => {
       const rawTerm = args.term as string;
-      // LIKE-escape first so user `%`/`_` becomes literal, then quote-escape
-      // for SQL string-literal safety. ESCAPE '\\' tells QBO that backslash
-      // is the wildcard-escape character.
-      const term = escapeQboString(escapeQboLike(rawTerm));
-      const startPosition = assertPositiveInt(args.startPosition ?? 1, "startPosition");
+      // Quote-escape only (double any single quote) for SQL string-literal
+      // safety. We do NOT LIKE-escape `%`/`_`, and deliberately omit the
+      // `ESCAPE '\\'` clause: QBO's query parser rejects `ESCAPE` with a 400
+      // QueryParserError, so any term run through it failed outright. A `%`
+      // or `_` in the term is therefore treated as a wildcard, which is
+      // acceptable for a substring search; injection is still prevented by
+      // doubling quotes.
+      const term = escapeQboString(rawTerm);
+      const startPosition = assertPositiveInt(args.startPosition ?? 1, "startPosition", {
+        max: Infinity,
+      });
       const maxResults = assertPositiveInt(args.maxResults ?? 100, "maxResults");
-      const sql = `SELECT * FROM ${config.name} WHERE ${field} LIKE '%${term}%' ESCAPE '\\' STARTPOSITION ${startPosition} MAXRESULTS ${maxResults}`;
+      const sql = `SELECT * FROM ${config.name} WHERE ${field} LIKE '%${term}%' STARTPOSITION ${startPosition} MAXRESULTS ${maxResults}`;
       const result = await getClient().query(sql);
       return jsonText(result);
     });
