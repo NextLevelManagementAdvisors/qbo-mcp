@@ -42,7 +42,11 @@ export function assertDate(value: string, field: string): string {
 
 /**
  * Validate and coerce a positive integer for pagination parameters. QBO caps
- * MAXRESULTS at 1000 and rejects zero/negative values.
+ * MAXRESULTS at 1000 and rejects zero/negative values, but STARTPOSITION has
+ * no such ceiling — a caller paging past the 1000th record needs a start
+ * offset well above 1000. Pass `max: Infinity` (the default `max` is 1000) to
+ * accept any positive integer while still rejecting zero, negatives, and
+ * non-integers.
  */
 export function assertPositiveInt(
   value: unknown,
@@ -52,8 +56,9 @@ export function assertPositiveInt(
   const { min = 1, max = 1000 } = opts;
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isInteger(n) || n < min || n > max) {
+    const upper = Number.isFinite(max) ? max : "∞";
     throw new Error(
-      `Invalid ${field}: expected integer in [${min}, ${max}], got ${JSON.stringify(value)}`
+      `Invalid ${field}: expected integer in [${min}, ${upper}], got ${JSON.stringify(value)}`
     );
   }
   return n;
@@ -77,7 +82,9 @@ export function buildDatedListSql(
   args: DatedListArgs,
   extraConditions: string[] = []
 ): string {
-  const startPosition = assertPositiveInt(args.startPosition ?? 1, "startPosition");
+  const startPosition = assertPositiveInt(args.startPosition ?? 1, "startPosition", {
+    max: Infinity,
+  });
   const maxResults = assertPositiveInt(args.maxResults ?? 100, "maxResults");
 
   const conditions: string[] = [...extraConditions];

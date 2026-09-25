@@ -14,53 +14,57 @@ import {
   type DatedListArgs,
 } from "../utils/qbo-sql.js";
 import { jsonText } from "./generator.js";
-import type { EntityConfig, EntityExtras } from "./types.js";
+import { mergeExtras, operationExtras } from "./operations.js";
+import type { EntityConfig, EntityExtras, EntityField } from "./types.js";
+
+const invoiceFields: EntityField[] = [
+  {
+    name: "CustomerRef",
+    type: "object",
+    required: true,
+    description:
+      'Customer reference object, e.g. {"value": "123"} where value is the customer ID',
+  },
+  {
+    name: "Line",
+    type: "array",
+    required: true,
+    description:
+      'Array of line items. Each line should have Amount, DetailType ("SalesItemLineDetail"), and SalesItemLineDetail with ItemRef.',
+    items: { type: "object" },
+  },
+  { name: "DueDate", type: "string", description: "Due date (YYYY-MM-DD)" },
+  { name: "TxnDate", type: "string", description: "Transaction date (YYYY-MM-DD)" },
+  {
+    name: "BillEmail",
+    type: "object",
+    description:
+      'Email address to send the invoice to, e.g. {"Address": "customer@example.com"}',
+  },
+  {
+    name: "PrivateNote",
+    type: "string",
+    description: "Private note (not visible to customer)",
+  },
+  {
+    name: "CustomerMemo",
+    type: "object",
+    description:
+      'Memo visible to customer, e.g. {"value": "Thank you for your business"}',
+  },
+];
 
 export const invoiceConfig: EntityConfig = {
   name: "Invoice",
   toolPrefix: "qbo_invoices",
   description:
-    "Invoice management - list, get, create invoices and send them by email",
+    "Invoice management - list, get, create, update invoices and send them by email",
   // list is overridden in extras to add the status filter + elicitation.
   get: { idParam: "invoiceId" },
-  create: {
-    fields: [
-      {
-        name: "CustomerRef",
-        type: "object",
-        required: true,
-        description:
-          'Customer reference object, e.g. {"value": "123"} where value is the customer ID',
-      },
-      {
-        name: "Line",
-        type: "array",
-        required: true,
-        description:
-          'Array of line items. Each line should have Amount, DetailType ("SalesItemLineDetail"), and SalesItemLineDetail with ItemRef.',
-        items: { type: "object" },
-      },
-      { name: "DueDate", type: "string", description: "Due date (YYYY-MM-DD)" },
-      { name: "TxnDate", type: "string", description: "Transaction date (YYYY-MM-DD)" },
-      {
-        name: "BillEmail",
-        type: "object",
-        description:
-          'Email address to send the invoice to, e.g. {"Address": "customer@example.com"}',
-      },
-      {
-        name: "PrivateNote",
-        type: "string",
-        description: "Private note (not visible to customer)",
-      },
-      {
-        name: "CustomerMemo",
-        type: "object",
-        description:
-          'Memo visible to customer, e.g. {"value": "Thank you for your business"}',
-      },
-    ],
-  },
+  create: { fields: invoiceFields },
+  // Sparse update: Id + SyncToken added by the generator. QBO still requires
+  // CustomerRef and Line on the payload, same as create.
+  update: { idParam: "invoiceId", fields: invoiceFields },
 };
 
 const invoicesListTool: Tool = {
@@ -113,7 +117,7 @@ const invoicesSendTool: Tool = {
   },
 };
 
-export const invoiceExtras: EntityExtras = {
+const invoiceCrudExtras: EntityExtras = {
   tools: [invoicesListTool, invoicesSendTool],
   handlers: {
     qbo_invoices_get: async (args) => {
@@ -173,3 +177,15 @@ export const invoiceExtras: EntityExtras = {
     },
   },
 };
+
+export const invoiceExtras: EntityExtras = mergeExtras(
+  invoiceCrudExtras,
+  operationExtras({
+    prefix: "qbo_invoices",
+    path: "invoice",
+    label: "invoice",
+    idParam: "invoiceId",
+    void: true,
+    delete: true,
+  })
+);

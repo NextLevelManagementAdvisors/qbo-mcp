@@ -3,9 +3,18 @@
  *
  * Lines either reference linked transactions (LinkedTxn from Undeposited
  * Funds) or are direct deposit lines (DepositLineDetail with AccountRef).
+ *
+ * IMPORTANT — updating deposit lines: a QBO full-update will NOT remove an
+ * existing `DepositLineDetail` line. Sending an updated `Line` array that omits
+ * a previously-present DepositLineDetail line leaves that line in place. To
+ * relink a deposit line to a Payment, do NOT try to drop the old line: add the
+ * new `LinkedTxn` line AND set the old line's `Amount` to 0 (verified against
+ * production). The deposit total stays correct because the zeroed line
+ * contributes nothing.
  */
 
-import type { EntityConfig, EntityField } from "./types.js";
+import { mergeExtras, operationExtras } from "./operations.js";
+import type { EntityConfig, EntityExtras, EntityField } from "./types.js";
 
 const depositFields: EntityField[] = [
   {
@@ -36,9 +45,20 @@ const depositFields: EntityField[] = [
 export const depositConfig: EntityConfig = {
   name: "Deposit",
   toolPrefix: "qbo_deposits",
-  description: "Bank deposits - list, get, create, update deposits aggregating receipts",
+  description: "Bank deposits - list, get, create, update, delete deposits aggregating receipts",
   list: { dateRange: true },
   get: { idParam: "depositId" },
   create: { fields: depositFields },
   update: { idParam: "depositId", fields: depositFields },
 };
+
+export const depositExtras: EntityExtras = mergeExtras(
+  {},
+  operationExtras({
+    prefix: "qbo_deposits",
+    path: "deposit",
+    label: "deposit",
+    idParam: "depositId",
+    delete: true,
+  })
+);
