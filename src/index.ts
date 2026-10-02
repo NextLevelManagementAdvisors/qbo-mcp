@@ -29,7 +29,7 @@ const S2S_SECRET = process.env.CONDUIT_S2S_SECRET || "";
  * Transport and auth configuration types
  */
 type TransportType = "stdio" | "http";
-type AuthMode = "env" | "gateway";
+type AuthMode = "env" | "gateway" | "hybrid";
 
 /**
  * Start the server with stdio transport (default).
@@ -128,7 +128,7 @@ async function startHttpTransport(): Promise<void> {
           JSON.stringify({
             status: "ok",
             transport: "http",
-            authMode: isGatewayMode ? "gateway" : "env",
+            authMode,
             timestamp: new Date().toISOString(),
           })
         );
@@ -184,6 +184,19 @@ async function startHttpTransport(): Promise<void> {
           // each other's creds.
           credentialStore.run(creds, () => void handleMcpRequest(req, res));
           return;
+        }
+
+        // Hybrid: env mode still honors per-request gateway headers when BOTH
+        // are present (injected by the qbo-oauth /validate hop, which strips any
+        // client-supplied copies). Absent headers fall back to env credentials.
+        if (authMode === "hybrid") {
+          const { creds } = resolveGatewayCredentials(
+            (name) => req.headers[name] as string | undefined
+          );
+          if (creds) {
+            credentialStore.run(creds, () => void handleMcpRequest(req, res));
+            return;
+          }
         }
 
         void handleMcpRequest(req, res);
